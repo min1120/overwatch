@@ -1,0 +1,194 @@
+int pinLed[] = {2, 3, 4, 5, 6};
+#include<SoftwareSerial.h>
+SoftwareSerial bt(12, 13); //TXD,RXD
+int Max = 0, Min = 0;
+void setup()
+{
+  randomSeed(analogRead(A0));
+  Serial.begin(9600);
+  bt.begin(9600);
+
+  pinMode(2, OUTPUT);
+  pinMode(3, OUTPUT);
+  pinMode(4, OUTPUT);
+  pinMode(5, OUTPUT);
+  pinMode(6, OUTPUT);
+
+  pinMode(10, INPUT_PULLUP);
+
+  digitalWrite(2, HIGH);
+  digitalWrite(3, HIGH);
+  digitalWrite(4, HIGH);
+  digitalWrite(5, HIGH);
+  digitalWrite(6, HIGH);
+
+}
+unsigned long preTime = 0;
+unsigned long preTimeBlink = 0;
+unsigned long BlinkTime = 1000;
+unsigned long curTime = 0;
+int target = 0;
+int randomLed = 0;
+int score = 0;
+int R = 2;
+int life = 1;
+int iStep = 10,color;
+boolean first = true;
+
+
+void loop()
+{
+  first = true;
+
+  //시작,종료,리셋 신호받기
+  if (bt.available())
+  {
+    if (bt.read() == '1')
+      iStep = 0;
+    else if (bt.read() == '0')
+    {
+      iStep = 10;
+      target = 0;
+      randomLed = 0;
+      score = 0;
+      R = 3;
+      life = 2;
+      iStep = 10;
+      
+      boolean first = true;
+    }
+  }
+
+
+
+  // 타겟 정하기
+  if (iStep == 0)
+  {
+    randomSeed(analogRead(A0));
+    target = random(0, 5);
+    Serial.println(target);
+
+    analogWrite(A1, color);
+    analogWrite(A2, 255-color);
+
+    // 타겟 알리기buzer lcd 범인pueasi
+    digitalWrite(pinLed[target], LOW);
+    delay(500);
+
+    digitalWrite(pinLed[target], HIGH);
+    delay(500);
+
+    digitalWrite(pinLed[target], LOW);
+    delay(500);
+
+    digitalWrite(pinLed[target], HIGH);
+    delay(500);
+
+    digitalWrite(pinLed[target], LOW);
+    delay(500);
+
+    digitalWrite(pinLed[target], HIGH);
+    delay(500);
+
+    iStep++;
+
+    preTime = millis();
+    preTimeBlink = millis();
+  }
+  //깜빡깜빡
+  while (iStep == 1)
+  {
+    curTime = millis();
+
+    if (curTime - preTime >= 5000)
+    {
+      preTime = curTime;
+
+      R--;
+      digitalWrite(pinLed[randomLed], HIGH);
+      Serial.println("5Sec");
+      Serial.println("Round");
+      Serial.println(R);
+      iStep = 2;
+    }
+    else
+    {
+      if (curTime - preTimeBlink > BlinkTime || first == true)
+      {
+        preTimeBlink = curTime;
+        analogWrite(A1, random(256));
+        analogWrite(A2, random(256));
+
+        digitalWrite(pinLed[randomLed], HIGH);
+        randomLed = random(0, 5);
+        digitalWrite(pinLed[randomLed], LOW);
+        first = false;
+
+        Serial.println("1Sec");
+      }
+      else
+      {
+        if (digitalRead(10) == LOW)
+        {
+          delay(50);
+          if (target == randomLed)
+          {
+            score++;
+            BlinkTime -= 100;
+            Serial.println("score");
+            Serial.println(score);
+          }
+          else
+          {
+            R--;
+            
+            Serial.println("Round");
+            Serial.println(R);
+            
+          }
+
+
+        //  digitalWrite(pinLed[randomLed], HIGH);
+            delay(1000);
+    
+          iStep = 0;
+        }
+      }
+    }
+
+  }
+
+  while(iStep==2)
+  {
+     delay(1000);
+     iStep=0;
+  }
+  
+  if (R == 0)
+  {
+    Serial.println("round0");
+    life--;
+    Serial.println("life");
+    Serial.println(life);
+    R=3;
+  }
+
+  if (life <= 0)
+  {
+    Serial.println("life0");
+    iStep = 3;
+    life=1;
+  }
+  //점수보내기
+  if (iStep == 3)
+  {
+    //블루투스통신
+    bt.print(1);
+    iStep=10;
+    Serial.println("score");
+    Serial.println('1');
+  }
+
+
+}
+
